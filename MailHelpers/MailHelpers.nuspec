@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>1.0.0.1</version>
+    <title>MailHelpers</title>
+    <authors>TAn</authors>
+    <owners>TAn</owners>
+    <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl>
+    <projectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</projectUrl>
+    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>邮件发送类库</description>
+    <releaseNotes>最初的版本</releaseNotes>
+    <copyright>Copyright 2016</copyright>
+    <tags>mail sendmail</tags>
+  </metadata>
+</package>
