@@ -2,16 +2,18 @@
 <package >
   <metadata>
     <id>$id$</id>
-    <version>1.0.0.1</version>
+    <version>$version$</version>
     <title>MailHelpers</title>
     <authors>TAn</authors>
     <owners>TAn</owners>
     <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl>
-    <projectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</projectUrl>
+    <projectUrl>https://github.com/TAnsz/MailHelpers</projectUrl>
     <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>邮件发送类库</description>
-    <releaseNotes>最初的版本</releaseNotes>
+    <description>封装邮件类库，可同步或者异步发送邮件，支持重用Smtp
+    Github https://github.com/TAnsz/MailHelpers
+    任何使用问题，可以上github交流</description>
+    <releaseNotes>修改为.net4.0</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>mail sendmail</tags>
   </metadata>

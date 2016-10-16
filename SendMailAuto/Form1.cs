@@ -69,7 +69,7 @@ namespace SendMailAuto
 
             if (dt.Rows.Count > 0)
             {
-                var mail = new MailHelper(asnyc);
+                var mail = new MailHelper(asnyc, "192.168.3.31", 25, "h3bpm", "Bpm3H287");
                 mail.SetBatchMailCount(dt.Rows.Count);
                 //设置异步回调函数
                 if (asnyc)
@@ -146,7 +146,7 @@ namespace SendMailAuto
                 dt.AcceptChanges();
                 toolStrip1.Invoke((MethodInvoker)delegate
                 {
-                    label1.Text = "邮件发送完成";
+                    label1.Text = "邮件处理完成";
                 });
                 while (mail.ExistsSmtpClient())
                 {

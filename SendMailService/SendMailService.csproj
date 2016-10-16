@@ -34,8 +34,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MailHelpers, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MailHelpers.1.0.0.1\lib\net452\MailHelpers.dll</HintPath>
+    <Reference Include="MailHelpers, Version=1.0.0.2, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MailHelpers.1.0.0.3\lib\net40\MailHelpers.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

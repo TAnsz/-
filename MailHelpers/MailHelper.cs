@@ -30,6 +30,22 @@ namespace MailHelpers
         {
             m_IsAsync = isAsync;
         }
+        /// <summary>
+        /// 构建 MailHelper 实例
+        /// </summary>
+        /// <param name="isAsync">是否启用异步邮件发送，默认为同步发送</param>
+        /// <param name="smtpclient">smtp服务器地址</param>
+        /// <param name="port">端口</param>
+        /// <param name="user">用户名</param>
+        /// <param name="password">密码</param>
+        public MailHelper(bool isAsync = false,string smtpclient=null,int port=0,string user=null,string password = null)
+        {
+            m_IsAsync = isAsync;
+            SmtpClientAdd = smtpclient;
+            Port = port;
+            User = user;
+            Password = password;
+        }
 
         /// <summary>
         /// 构建 MailHelper 实例
@@ -104,6 +120,22 @@ namespace MailHelpers
         #endregion
 
         #region 内部字段、属性
+        /// <summary>
+        /// smtp服务器地址
+        /// </summary>
+        string SmtpClientAdd { get; set; }
+        /// <summary>
+        /// smtp端口
+        /// </summary>
+        int Port { get; set; }
+        /// <summary>
+        /// smtp用户名
+        /// </summary>
+        string User { get; set; }
+        /// <summary>
+        /// smtp密码
+        /// </summary>
+        string Password { get; set; }
 
         SmtpClient m_SmtpClient { get; set; }
 
@@ -295,11 +327,11 @@ namespace MailHelpers
         /// </summary>
         public SmtpClient CreatSmtpClient()
         {
-            var smtp = new SmtpClient("192.168.3.31", 25);
+            var smtp = new SmtpClient(SmtpClientAdd, Port);
             smtp.EnableSsl = false;
             smtp.UseDefaultCredentials = false;
             smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
-            smtp.Credentials = new NetworkCredential("h3bpm", "Bpm3H287");
+            smtp.Credentials = new NetworkCredential(User, Password);
             smtp.Timeout = 100000;
             return smtp;
         }
@@ -340,13 +372,15 @@ namespace MailHelpers
         /// <param name="bcc">密送列表(;分隔)</param>
         /// <param name="isbodyhtml">邮件内容是否html格式</param>
         /// <param name="priority">邮件优先级 0-Normal   1-Low   2-High</param>
-        public void SetMailInfo(string subject, string body, string to, string cc = null, string bcc = null, bool isbodyhtml = true, int priority = 0)
+        public void SetMailInfo(string subject, string body, string to, string cc = null, string bcc = null,string from=null ,string fromName=null, bool isbodyhtml = true, int priority = 0)
         {
             Subject = subject;
             Body = body;
             To = to;
             Cc = cc ?? "";
             Bcc = bcc ?? "";
+            From = from ?? "";
+            FromDisplayName = fromName ?? "";
             IsBodyHtml = isbodyhtml;
             Priority = priority;
         }
@@ -354,11 +388,16 @@ namespace MailHelpers
         /// <summary>
         /// 发送一封邮件
         /// </summary>
-        /// <param name="smtpClient">smtp链接，如不设置则自动根据默认值创建一个</param>
-        public void SendOneMail(SmtpClient smtpClient = null)
+        /// <param name="subject">邮件标题</param>
+        /// <param name="body">邮件正文</param>
+        /// <param name="to">收件列表(;分隔)</param>
+        /// <param name="cc">抄送列表(;分隔)</param>
+        /// <param name="bcc">密送列表(;分隔)</param>
+        public void SendMail(string subject, string body, string to, string cc = null, string bcc = null,string from= null, string fromName = null)
         {
+            SetMailInfo(subject, body, to, cc, bcc,from,fromName);
             m_PrepareSendCount = 1;
-            SendMail(smtpClient, true);
+            SendMail();
         }
 
         /// <summary>
