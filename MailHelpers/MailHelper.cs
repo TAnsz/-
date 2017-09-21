@@ -19,16 +19,15 @@ namespace MailHelpers
     /// </summary>
     public class MailHelper
     {
-
         #region 构造函数
 
         /// <summary>
         /// 构建 MailHelper 实例
         /// </summary>
-        /// <param name="isAsync">是否启用异步邮件发送，默认为同步发送</param>
         public MailHelper()
         {
         }
+
         /// <summary>
         /// 构建 MailHelper 实例
         /// </summary>
@@ -54,22 +53,21 @@ namespace MailHelpers
             SetSmtpClient(mSmtpClient, autoReleaseSmtp);
         }
 
-        #endregion
+        #endregion 构造函数
+
         #region 公开属性
 
-        /// <summary>
-        /// 设置此电子邮件的发信人地址。
-        /// </summary>
-        public string From { get; set; }
-        /// <summary>
-        /// 设置此电子邮件的发信人地址。
-        /// </summary>
-        public string FromDisplayName { get; set; }
+        private int priority = 0;
 
         /// <summary>
-        /// 设置此电子邮件的收件地址列表，分号(;)分隔。
+        /// 设置此电子邮件的密送地址列表，分号(;)分隔。
         /// </summary>
-        public string To { get; set; }
+        public string Bcc { get; set; }
+
+        /// <summary>
+        /// 设置邮件正文。
+        /// </summary>
+        public string Body { get; set; }
 
         /// <summary>
         /// 设置此电子邮件的抄送地址列表，分号(;)分隔。
@@ -77,26 +75,25 @@ namespace MailHelpers
         public string Cc { get; set; }
 
         /// <summary>
-        /// 设置此电子邮件的密送地址列表，分号(;)分隔。
+        /// 设置此电子邮件的发信人地址。
         /// </summary>
-        public string Bcc { get; set; }
-
+        public string From { get; set; }
 
         /// <summary>
-        /// 设置此电子邮件的主题。
+        /// 设置此电子邮件的发信人地址。
         /// </summary>
-        public string Subject { get; set; }
-        /// <summary>
-        /// 设置邮件正文。
-        /// </summary>
-        public string Body { get; set; }
+        public string FromDisplayName { get; set; }
 
         /// <summary>
         /// 设置邮件正文是否为 Html 格式的值。
         /// </summary>
         public bool IsBodyHtml { get; set; }
 
-        private int priority = 0;
+        /// <summary>
+        /// 异步发送标志
+        /// </summary>
+        public bool m_IsAsync { get; set; }
+
         /// <summary>
         /// 设置此电子邮件的优先级  0-Normal   1-Low   2-High
         /// 默认Normal。
@@ -113,27 +110,19 @@ namespace MailHelpers
             }
         }
 
-        #endregion
+        /// <summary>
+        /// 设置此电子邮件的主题。
+        /// </summary>
+        public string Subject { get; set; }
+
+        /// <summary>
+        /// 设置此电子邮件的收件地址列表，分号(;)分隔。
+        /// </summary>
+        public string To { get; set; }
+
+        #endregion 公开属性
 
         #region 内部字段、属性
-        /// <summary>
-        /// smtp服务器地址
-        /// </summary>
-        string SmtpClientAdd { get; set; }
-        /// <summary>
-        /// smtp端口
-        /// </summary>
-        int Port { get; set; }
-        /// <summary>
-        /// smtp用户名
-        /// </summary>
-        string User { get; set; }
-        /// <summary>
-        /// smtp密码
-        /// </summary>
-        string Password { get; set; }
-
-        SmtpClient m_SmtpClient { get; set; }
 
         /// <summary>
         /// 默认为false。设置在 MailHelper 类内部，发送完邮件后是否自动释放 SmtpClient 实例
@@ -142,49 +131,85 @@ namespace MailHelpers
         ///
         /// 何时将 autoReleaseSmtp 设置为false，就是SmtpClient需要重复使用的情况，即需要使用“相同MailHelper”向“相同Smtp服务器”发送大批量的邮件时。
         /// </summary>
-        bool m_autoDisposeSmtp = false;
-
-        // 附件集合
-        Collection<Attachment> Attachments { get; set; }
+        private bool m_autoDisposeSmtp = false;
 
         // 指定一个电子邮件不同格式显示的副本。
-        Collection<AlternateView> AlternateViews { get; set; }
+        private Collection<AlternateView> AlternateViews { get; set; }
 
-        #endregion
+        // 附件集合
+        private Collection<Attachment> Attachments { get; set; }
 
+        private SmtpClient m_SmtpClient { get; set; }
 
-        #region  计划邮件数量 和 已执行完成邮件数量
+        /// <summary>
+        /// smtp密码
+        /// </summary>
+        private string Password { get; set; }
+
+        /// <summary>
+        /// smtp端口
+        /// </summary>
+        private int Port { get; set; }
+
+        /// <summary>
+        /// smtp服务器地址
+        /// </summary>
+        private string SmtpClientAdd { get; set; }
+
+        /// <summary>
+        /// smtp用户名
+        /// </summary>
+        private string User { get; set; }
+
+        #endregion 内部字段、属性
+
+        #region 计划邮件数量 和 已执行完成邮件数量
 
         // 记录和获取在大批量执行异步短信发送时已经处理了多少条记录
         // 1、根据此值手动或自动释放 SmtpClient .实际上没有需要根据此值进行手动释放，因为完全可以用自动释放替换此逻辑
         // 2、根据此值可以自己设置进度
-        long m_CompletedSendCount = 0;
+        private long m_CompletedSendCount = 0;
+
+        // 计划邮件数量
+        private long m_PrepareSendCount = 0;
+
         public long CompletedSendCount
         {
             get { return Interlocked.Read(ref m_CompletedSendCount); }
             private set { Interlocked.Exchange(ref m_CompletedSendCount, value); }
         }
 
-        // 计划邮件数量
-        long m_PrepareSendCount = 0;
         public long PrepareSendCount
         {
             get { return Interlocked.Read(ref m_PrepareSendCount); }
             private set { Interlocked.Exchange(ref m_PrepareSendCount, value); }
         }
 
-        #endregion
+        #endregion 计划邮件数量 和 已执行完成邮件数量
 
         #region 异步 发送邮件相关参数
 
         // 案例：因为异步发送邮件在SmtpClient处必须加锁保证一封一封的发送。
         // 这样阻塞了主线程。所以换用队列的方式以无阻塞的方式进行异步发送大批量邮件
 
-        // 发送任务可能很长，所以使用 Thread 而不是用ThreadPool。（避免长时间暂居线程池线程），并且SmtpClient只支持一次一封邮件发送
-        Thread m_SendMailThread = null;
+        private AutoResetEvent m_AutoResetEvent = null;
 
-        AutoResetEvent m_AutoResetEvent = null;
-        AutoResetEvent AutoResetEvent
+        // 因为 MessageQueue 可能在 m_SendMailThread 线程中进行出队操作,所以使用并发队列ConcurrentQueue.
+        // 队列中的数据只能通过取消异步发送进行清空，或则就会每一元素都执行发送邮件
+        private ConcurrentQueue<MailUserState> m_MessageQueue = null;
+
+        // 待发送队列缓存数量。单独开个计数是为了提高获取此计数的效率
+        private int m_messageQueueCount = 0;
+
+        // 发送任务可能很长，所以使用 Thread 而不是用ThreadPool。（避免长时间暂居线程池线程），并且SmtpClient只支持一次一封邮件发送
+        private Thread m_SendMailThread = null;
+
+        /// <summary>
+        /// 在执行异步发送时传递的对象，用于传递给异步发生完成时调用的方法 OnSendCompleted 。
+        /// </summary>
+        public object AsycUserState { get; set; }
+
+        private AutoResetEvent AutoResetEvent
         {
             get
             {
@@ -194,11 +219,6 @@ namespace MailHelpers
             }
         }
 
-        // 待发送队列缓存数量。单独开个计数是为了提高获取此计数的效率
-        int m_messageQueueCount = 0;
-        // 因为 MessageQueue 可能在 m_SendMailThread 线程中进行出队操作,所以使用并发队列ConcurrentQueue.
-        // 队列中的数据只能通过取消异步发送进行清空，或则就会每一元素都执行发送邮件
-        private ConcurrentQueue<MailUserState> m_MessageQueue = null;
         private ConcurrentQueue<MailUserState> MessageQueue
         {
             get
@@ -209,15 +229,23 @@ namespace MailHelpers
             }
         }
 
-        /// <summary>
-        /// 在执行异步发送时传递的对象，用于传递给异步发生完成时调用的方法 OnSendCompleted 。
-        /// </summary>
-        public object AsycUserState { get; set; }
-        #endregion
-
-
+        #endregion 异步 发送邮件相关参数
 
         #region SmtpClient 相关方法
+
+        /// <summary>
+        /// 根据默认值创建一个链接
+        /// </summary>
+        public SmtpClient CreatSmtpClient()
+        {
+            var smtp = new SmtpClient(SmtpClientAdd, Port);
+            smtp.EnableSsl = false;
+            smtp.UseDefaultCredentials = false;
+            smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
+            smtp.Credentials = new NetworkCredential(User, Password);
+            smtp.Timeout = 100000;
+            return smtp;
+        }
 
         /// <summary>
         /// 检查此 MailHelper 实例是否已经设置了 SmtpClient
@@ -226,6 +254,14 @@ namespace MailHelpers
         public bool ExistsSmtpClient()
         {
             return m_SmtpClient != null;
+        }
+
+        /// <summary>
+        /// 释放 SmtpClient
+        /// </summary>
+        public void ManualDisposeSmtp()
+        {
+            this.InnerDisposeSmtp();
         }
 
         /// <summary>
@@ -252,17 +288,9 @@ namespace MailHelpers
         }
 
         /// <summary>
-        /// 释放 SmtpClient
-        /// </summary>
-        public void ManualDisposeSmtp()
-        {
-            this.InnerDisposeSmtp();
-        }
-
-        /// <summary>
         /// 释放SmtpClient
         /// </summary>
-        void AutoDisposeSmtp()
+        private void AutoDisposeSmtp()
         {
             if (m_autoDisposeSmtp && m_SmtpClient != null)
             {
@@ -289,7 +317,7 @@ namespace MailHelpers
         /// <summary>
         /// 释放SmtpClient
         /// </summary>
-        void InnerDisposeSmtp()
+        private void InnerDisposeSmtp()
         {
             if (m_SmtpClient != null)
             {
@@ -307,23 +335,65 @@ namespace MailHelpers
             }
         }
 
-        /// <summary>
-        /// 根据默认值创建一个链接
-        /// </summary>
-        public SmtpClient CreatSmtpClient()
-        {
-            var smtp = new SmtpClient(SmtpClientAdd, Port);
-            smtp.EnableSsl = false;
-            smtp.UseDefaultCredentials = false;
-            smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
-            smtp.Credentials = new NetworkCredential(User, Password);
-            smtp.Timeout = 100000;
-            return smtp;
-        }
-
-        #endregion
+        #endregion SmtpClient 相关方法
 
         #region 发送邮件 相关方法
+
+        /// <summary>
+        /// 取消异步邮件发送
+        /// </summary>
+        public void SendAsyncCancel()
+        {
+            // 因为此类为非线程安全类，所以 SendAsyncCancel 和发送邮件方法中操作MessageQueue部分的代码肯定是串行化的。
+            // 所以不存在一边入队，一边出队导致无法完全取消所有邮件发送
+
+            // 1、清空队列。
+            // 2、取消正在异步发送的mail。
+            // 3、设置计划数量=完成数量
+            // 4、执行 AutoDisposeSmtp()
+
+            // 1、清空队列。
+            MailUserState tempMailUserState = null;
+            while (MessageQueue.TryDequeue(out tempMailUserState))
+            {
+                Interlocked.Decrement(ref m_messageQueueCount);
+                MailMessage message = tempMailUserState.CurMailMessage;
+                InnerDisposeMessage(message);
+            }
+            tempMailUserState = null;
+            // 2、取消正在异步发送的mail。
+            m_SmtpClient.SendAsyncCancel();
+            // 3、设置计划数量=完成数量
+            PrepareSendCount = CompletedSendCount;
+            // 4、执行 AutoDisposeSmtp()
+            AutoDisposeSmtp();
+        }
+
+        /// <summary>
+        /// 发送一封邮件
+        /// </summary>
+        /// <param name="subject">邮件标题</param>
+        /// <param name="body">邮件正文</param>
+        /// <param name="to">收件列表(;分隔)</param>
+        /// <param name="cc">抄送列表(;分隔)</param>
+        /// <param name="bcc">密送列表(;分隔)</param>
+        public void SendMail(string subject, string body, string to, string cc = null, string bcc = null, string from = null, string fromName = null)
+        {
+            SetMailInfo(subject, body, to, cc, bcc, from, fromName);
+            m_PrepareSendCount = 1;
+            SendMail();
+        }
+
+        /// <summary>
+        /// 发送邮件
+        /// </summary>
+        /// <param name="smtpClient">smtp链接，如不设置则自动根据默认值创建一个</param>
+        /// <param name="autoReleaseSmtp">是否自动释放smtp链接</param>
+        public void SendMail(SmtpClient smtpClient = null, bool autoReleaseSmtp = true)
+        {
+            SetSmtpClient(smtpClient ?? CreatSmtpClient(), autoReleaseSmtp);
+            InnerSendMessage();
+        }
 
         /// <summary>
         /// 计划批量发送邮件的个数，配合自动释放SmtpClient。（批量邮件发送不调用此方法就不会自动释放SmtpClient）
@@ -371,67 +441,159 @@ namespace MailHelpers
         }
 
         /// <summary>
-        /// 发送一封邮件
+        /// 声明在 SmtpClient.SendAsync() 执行完后释放相关对象的回调方法   最后触发的委托
         /// </summary>
-        /// <param name="subject">邮件标题</param>
-        /// <param name="body">邮件正文</param>
-        /// <param name="to">收件列表(;分隔)</param>
-        /// <param name="cc">抄送列表(;分隔)</param>
-        /// <param name="bcc">密送列表(;分隔)</param>
-        public void SendMail(string subject, string body, string to, string cc = null, string bcc = null, string from = null, string fromName = null)
+        protected void SendCompleted4Dispose(object sender, AsyncCompletedEventArgs e)
         {
-            SetMailInfo(subject, body, to, cc, bcc, from, fromName);
-            m_PrepareSendCount = 1;
-            SendMail();
-        }
+            MailUserState state = e.UserState as MailUserState;
 
-        /// <summary>
-        /// 发送邮件
-        /// </summary>
-        /// <param name="smtpClient">smtp链接，如不设置则自动根据默认值创建一个</param>
-        /// <param name="autoReleaseSmtp">是否自动释放smtp链接</param>
-        public void SendMail(SmtpClient smtpClient = null, bool autoReleaseSmtp = true)
-        {
-            SetSmtpClient(smtpClient ?? CreatSmtpClient(), autoReleaseSmtp);
-            InnerSendMessage();
-        }
-
-        /// <summary>
-        /// 取消异步邮件发送
-        /// </summary>
-        public void SendAsyncCancel()
-        {
-            // 因为此类为非线程安全类，所以 SendAsyncCancel 和发送邮件方法中操作MessageQueue部分的代码肯定是串行化的。
-            // 所以不存在一边入队，一边出队导致无法完全取消所有邮件发送
-
-            // 1、清空队列。
-            // 2、取消正在异步发送的mail。
-            // 3、设置计划数量=完成数量
-            // 4、执行 AutoDisposeSmtp()
-
-            // 1、清空队列。
-            MailUserState tempMailUserState = null;
-            while (MessageQueue.TryDequeue(out tempMailUserState))
+            if (state.CurMailMessage != null)
             {
-                Interlocked.Decrement(ref m_messageQueueCount);
-                MailMessage message = tempMailUserState.CurMailMessage;
-                InnerDisposeMessage(message);
+                MailMessage message = state.CurMailMessage;
+                this.InnerDisposeMessage(message);
+                state.CurMailMessage = null;
             }
-            tempMailUserState = null;
-            // 2、取消正在异步发送的mail。
-            m_SmtpClient.SendAsyncCancel();
-            // 3、设置计划数量=完成数量
-            PrepareSendCount = CompletedSendCount;
-            // 4、执行 AutoDisposeSmtp()
-            AutoDisposeSmtp();
+
+            if (state.IsSmpleMail)
+            {
+                if (state.AutoReleaseSmtp && state.CurSmtpClient != null)
+                {
+                    //#if DEBUG
+                    //                    Debug.WriteLine("释放SmtpClient");
+                    //#endif
+                    state.CurSmtpClient.Dispose();
+                    state.CurSmtpClient = null;
+                }
+            }
+            else
+            {
+                if (!e.Cancelled)   // 取消的就不计数
+                    CompletedSendCount++;
+
+                if (state.AutoReleaseSmtp)
+                {
+                    AutoDisposeSmtp();
+                }
+
+                // 若批量异步发送，需要设置信号
+                //#if DEBUG
+                //                Debug.WriteLine("Set" + Thread.CurrentThread.ManagedThreadId);
+                //#endif
+                AutoResetEvent.Set();
+            }
+
+            // 先释放资源，处理错误逻辑
+            if (e.Error != null && !state.IsErrorHandle)
+            {
+                throw e.Error;
+            }
+        }
+
+        private MailMessage CreateMessagex()
+        {
+            #region 构建 MailMessage
+
+            bool hasError = false;
+            var mMailMessage = new MailMessage();
+            try
+            {
+                mMailMessage.From = new MailAddress(From, FromDisplayName);
+                //增加收件人地址等
+                foreach (var item in To.Split(';'))//.Where(s => MailValidatorHelper.IsEmail(s)))
+                {
+                    mMailMessage.To.Add(item);
+                }
+                if (!string.IsNullOrEmpty(Cc))
+                {
+                    foreach (var item in Cc.Split(';').Where(s => MailValidatorHelper.IsEmail(s)))
+                    {
+                        mMailMessage.CC.Add(item);
+                    }
+                }
+                if (!string.IsNullOrEmpty(Bcc))
+                {
+                    foreach (var item in Bcc.Split(';').Where(s => MailValidatorHelper.IsEmail(s)))
+                    {
+                        mMailMessage.Bcc.Add(item);
+                    }
+                }
+                mMailMessage.Subject = Subject;
+                mMailMessage.Body = Body;
+
+                if (Attachments != null && Attachments.Count > 0)
+                {
+                    foreach (Attachment attachment in Attachments)
+                        mMailMessage.Attachments.Add(attachment);
+                }
+
+                mMailMessage.SubjectEncoding = Encoding.UTF8;
+                mMailMessage.BodyEncoding = Encoding.UTF8;
+                // SmtpClient 的 Headers 中会根据 MailMessage 默认设置些值，所以应该为 UTF8 。
+                mMailMessage.HeadersEncoding = Encoding.UTF8;
+                mMailMessage.IsBodyHtml = IsBodyHtml;
+                if (AlternateViews != null && AlternateViews.Count > 0)
+                {
+                    foreach (AlternateView alternateView in AlternateViews)
+                    {
+                        mMailMessage.AlternateViews.Add(alternateView);
+                    }
+                }
+                mMailMessage.Priority = (MailPriority)Priority;
+            }
+            catch (ArgumentNullException argumentNullEx)
+            {
+                hasError = true;
+                throw argumentNullEx;
+            }
+            catch (ArgumentException argumentEx)
+            {
+                hasError = true;
+                throw argumentEx;
+            }
+            catch (FormatException formatEx)
+            {
+                hasError = true;
+                throw formatEx;
+            }
+            finally
+            {
+                if (hasError)
+                {
+                    if (mMailMessage != null)
+                    {
+                        this.InnerDisposeMessage(mMailMessage);
+                        mMailMessage = null;
+                    }
+                    this.InnerDisposeSmtp();
+                }
+            }
+            return mMailMessage;
+
+            #endregion 构建 MailMessage
+        }
+
+        /// <summary>
+        /// 释放 MailMessage 对象
+        /// </summary>
+        private void InnerDisposeMessage(MailMessage message)
+        {
+            if (message != null)
+            {
+                if (message.AlternateViews.Count > 0)
+                {
+                    message.AlternateViews.Dispose();
+                }
+
+                message.Dispose();
+                message = null;
+            }
         }
 
         /// <summary>
         /// 发送Email
         /// </summary>
-        void InnerSendMessage()
+        private void InnerSendMessage()
         {
-
             bool hasError = false;
 
             var msg = CheckSendMail();
@@ -471,7 +633,6 @@ namespace MailHelpers
                             MailUserState curUserState = userState as MailUserState;
                             curUserState.CurSmtpClient.SendAsync(mMailMessage, userState);
                         }, state);
-
                     }
                     else
                     {
@@ -547,11 +708,12 @@ namespace MailHelpers
                         }
                     }
 
-                    #endregion
+                    #endregion 异步发送邮件
                 }
                 else
                 {
                     #region 同步发送邮件
+
                     try
                     {
                         m_SmtpClient.Send(mMailMessage);
@@ -582,12 +744,13 @@ namespace MailHelpers
                         }
                         AutoDisposeSmtp();
                     }
-                    #endregion
+
+                    #endregion 同步发送邮件
                 }
             }
         }
 
-        void InnerSendMessageSync()
+        private void InnerSendMessageSync()
         {
             var msg = CheckSendMail();
             if (msg.Count > 0)
@@ -597,6 +760,7 @@ namespace MailHelpers
             try
             {
                 var mMailMessage = CreateMessagex();
+
                 #region 异步发送邮件
 
                 if (PrepareSendCount == 1)
@@ -683,7 +847,7 @@ namespace MailHelpers
                     }
                 }
 
-                #endregion
+                #endregion 异步发送邮件
             }
             catch (Exception e)
             {
@@ -691,156 +855,7 @@ namespace MailHelpers
             }
         }
 
-
-
-        MailMessage CreateMessagex()
-        {
-            #region 构建 MailMessage
-            bool hasError = false;
-            var mMailMessage = new MailMessage();
-            try
-            {
-                mMailMessage.From = new MailAddress(From, FromDisplayName);
-                //增加收件人地址等
-                foreach (var item in To.Split(';'))//.Where(s => MailValidatorHelper.IsEmail(s)))
-                {
-                    mMailMessage.To.Add(item);
-                }
-                if (!string.IsNullOrEmpty(Cc))
-                {
-                    foreach (var item in Cc.Split(';').Where(s => MailValidatorHelper.IsEmail(s)))
-                    {
-                        mMailMessage.CC.Add(item);
-                    }
-                }
-                if (!string.IsNullOrEmpty(Bcc))
-                {
-                    foreach (var item in Bcc.Split(';').Where(s => MailValidatorHelper.IsEmail(s)))
-                    {
-                        mMailMessage.Bcc.Add(item);
-                    }
-                }
-                mMailMessage.Subject = Subject;
-                mMailMessage.Body = Body;
-
-                if (Attachments != null && Attachments.Count > 0)
-                {
-                    foreach (Attachment attachment in Attachments)
-                        mMailMessage.Attachments.Add(attachment);
-                }
-
-                mMailMessage.SubjectEncoding = Encoding.UTF8;
-                mMailMessage.BodyEncoding = Encoding.UTF8;
-                // SmtpClient 的 Headers 中会根据 MailMessage 默认设置些值，所以应该为 UTF8 。
-                mMailMessage.HeadersEncoding = Encoding.UTF8;
-                mMailMessage.IsBodyHtml = IsBodyHtml;
-                if (AlternateViews != null && AlternateViews.Count > 0)
-                {
-                    foreach (AlternateView alternateView in AlternateViews)
-                    {
-                        mMailMessage.AlternateViews.Add(alternateView);
-                    }
-                }
-                mMailMessage.Priority = (MailPriority)Priority;
-            }
-            catch (ArgumentNullException argumentNullEx)
-            {
-                hasError = true;
-                throw argumentNullEx;
-            }
-            catch (ArgumentException argumentEx)
-            {
-                hasError = true;
-                throw argumentEx;
-            }
-            catch (FormatException formatEx)
-            {
-                hasError = true;
-                throw formatEx;
-            }
-            finally
-            {
-                if (hasError)
-                {
-                    if (mMailMessage != null)
-                    {
-                        this.InnerDisposeMessage(mMailMessage);
-                        mMailMessage = null;
-                    }
-                    this.InnerDisposeSmtp();
-                }
-            }
-            return mMailMessage;
-            #endregion
-        }
-
-        /// <summary>
-        /// 释放 MailMessage 对象
-        /// </summary>
-        void InnerDisposeMessage(MailMessage message)
-        {
-            if (message != null)
-            {
-                if (message.AlternateViews.Count > 0)
-                {
-                    message.AlternateViews.Dispose();
-                }
-
-                message.Dispose();
-                message = null;
-            }
-        }
-
-        /// <summary>
-        /// 声明在 SmtpClient.SendAsync() 执行完后释放相关对象的回调方法   最后触发的委托
-        /// </summary>
-        protected void SendCompleted4Dispose(object sender, AsyncCompletedEventArgs e)
-        {
-            MailUserState state = e.UserState as MailUserState;
-
-            if (state.CurMailMessage != null)
-            {
-                MailMessage message = state.CurMailMessage;
-                this.InnerDisposeMessage(message);
-                state.CurMailMessage = null;
-            }
-
-            if (state.IsSmpleMail)
-            {
-                if (state.AutoReleaseSmtp && state.CurSmtpClient != null)
-                {
-                    //#if DEBUG
-                    //                    Debug.WriteLine("释放SmtpClient");
-                    //#endif
-                    state.CurSmtpClient.Dispose();
-                    state.CurSmtpClient = null;
-                }
-            }
-            else
-            {
-                if (!e.Cancelled)   // 取消的就不计数
-                    CompletedSendCount++;
-
-                if (state.AutoReleaseSmtp)
-                {
-                    AutoDisposeSmtp();
-                }
-
-                // 若批量异步发送，需要设置信号
-                //#if DEBUG
-                //                Debug.WriteLine("Set" + Thread.CurrentThread.ManagedThreadId);
-                //#endif
-                AutoResetEvent.Set();
-            }
-
-            // 先释放资源，处理错误逻辑
-            if (e.Error != null && !state.IsErrorHandle)
-            {
-                throw e.Error;
-            }
-        }
-
-        #endregion
+        #endregion 发送邮件 相关方法
 
         #region 异步发送邮件，MessageQueue队列中缓冲的待发邮件数量，使用者可根据此数量来限制邮件数量，以免内存浪费
 
@@ -853,7 +868,7 @@ namespace MailHelpers
             return Thread.VolatileRead(ref m_messageQueueCount);
         }
 
-        #endregion
+        #endregion 异步发送邮件，MessageQueue队列中缓冲的待发邮件数量，使用者可根据此数量来限制邮件数量，以免内存浪费
 
         #region 发送邮件前检查 相关方法
 
@@ -871,37 +886,10 @@ namespace MailHelpers
         }
 
         /// <summary>
-        /// 发送邮件前检查需要设置的信息是否完整，收集 提示 信息
-        /// </summary>
-        /// <param name="dicMsg">将检查信息收集到此集合</param>
-        void InnerCheckSendMail4Info(Dictionary<MailInfoType, string> dicMsg)
-        {
-
-            #region 处理 抄送/密送
-
-            Cc = Cc ?? "";
-            Bcc = Bcc ?? "";
-
-            #endregion
-
-            // 邮件主题
-            if (Subject.Length == 0)
-                dicMsg.Add(MailInfoType.SubjectEmpty, MailInfoHelper.GetMailInfoStr(MailInfoType.SubjectEmpty));
-
-            // 邮件内容
-            if (Body.Length == 0 &&
-                (Attachments == null || (Attachments != null && Attachments.Count == 0))
-                )
-            {
-                dicMsg.Add(MailInfoType.BodyEmpty, MailInfoHelper.GetMailInfoStr(MailInfoType.BodyEmpty));
-            }
-        }
-
-        /// <summary>
         /// 发送邮件前检查需要设置的信息是否完整，收集 错误 信息
         /// </summary>
         /// <param name="dicMsg">将检查信息收集到此集合</param>
-        void InnerCheckSendMail4Error(Dictionary<MailInfoType, string> dicMsg)
+        private void InnerCheckSendMail4Error(Dictionary<MailInfoType, string> dicMsg)
         {
             #region 处理 发件/收件
 
@@ -934,7 +922,8 @@ namespace MailHelpers
                     }
                 }
             }
-            #endregion
+
+            #endregion 处理 发件/收件
 
             // SmtpClient 实例未设置
             if (m_SmtpClient == null)
@@ -949,8 +938,33 @@ namespace MailHelpers
                     dicMsg.Add(MailInfoType.CertificateEmpty, MailInfoHelper.GetMailInfoStr(MailInfoType.CertificateEmpty));
             }
         }
-        #endregion
 
+        /// <summary>
+        /// 发送邮件前检查需要设置的信息是否完整，收集 提示 信息
+        /// </summary>
+        /// <param name="dicMsg">将检查信息收集到此集合</param>
+        private void InnerCheckSendMail4Info(Dictionary<MailInfoType, string> dicMsg)
+        {
+            #region 处理 抄送/密送
 
+            Cc = Cc ?? "";
+            Bcc = Bcc ?? "";
+
+            #endregion 处理 抄送/密送
+
+            // 邮件主题
+            if (Subject.Length == 0)
+                dicMsg.Add(MailInfoType.SubjectEmpty, MailInfoHelper.GetMailInfoStr(MailInfoType.SubjectEmpty));
+
+            // 邮件内容
+            if (Body.Length == 0 &&
+                (Attachments == null || (Attachments != null && Attachments.Count == 0))
+                )
+            {
+                dicMsg.Add(MailInfoType.BodyEmpty, MailInfoHelper.GetMailInfoStr(MailInfoType.BodyEmpty));
+            }
+        }
+
+        #endregion 发送邮件前检查 相关方法
     }
 }
