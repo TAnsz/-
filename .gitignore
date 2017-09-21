@@ -241,7 +241,7 @@ ModelManifest.xml
 # FAKE - F# Make
 .fake/
 
-packages/
-SendMailAuto/
-SendMailService/
-ServiceManager/
+/packages/
+/SendMailAuto/
+/SendMailService/
+/ServiceManager/
