@@ -4,8 +4,12 @@ using System.Windows.Forms;
 using System.Configuration;
 using System.Data;
 using System.Collections.Generic;
-using MailHelpers;
 using System.Threading;
+using System.Net.Mail;
+using System.Text;
+using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace SendMailAuto
 {
@@ -24,6 +28,8 @@ namespace SendMailAuto
         /// 用于监听数据表中数据变化
         /// </summary>
         string SelectStr = @"SELECT ID,Sender,ToMailAddr,CcMailAddr,BccMailAddr,Subject,BodyPart,Creator,CreateDate,Status,SendTime,SendMsg  FROM  dbo.AutoMail WHERE Status = 0";
+
+        DataTable _dt = new DataTable();
 
         void Form1_Load(object sender, EventArgs e)
         {
@@ -58,117 +64,80 @@ namespace SendMailAuto
             });
         }
 
-        private void SendMail()
+        private async Task SendMail()
         {
             //处理未发送的邮件
             SqlDataAdapter da = new SqlDataAdapter(SelectStr, connStr);
-            var dt = new DataTable();
-            da.Fill(dt);
-            dt.PrimaryKey = new DataColumn[] { dt.Columns["ID"] };
-            bool asnyc = true;
+            _dt = new DataTable();
+            da.Fill(_dt);
+            _dt.PrimaryKey = new DataColumn[] { _dt.Columns["ID"] };
 
-            if (dt.Rows.Count > 0)
+            if (_dt.Rows.Count > 0)
             {
-                var mail = new MailHelper(asnyc, "192.168.3.31", 25, "h3bpm", "Bpm3H287");
-                mail.SetBatchMailCount(dt.Rows.Count);
-                //设置异步回调函数
-                if (asnyc)
+                var ip = ConfigurationManager.AppSettings["smtpclient"];
+                var port = Convert.ToInt32(ConfigurationManager.AppSettings["port"]);
+                using (var mail = new SmtpClient(ip, port))
                 {
-                    mail.AsyncCallback = (send, arg) =>
+                    mail.EnableSsl = false;
+                    mail.UseDefaultCredentials = false;
+                    mail.DeliveryMethod = SmtpDeliveryMethod.Network;
+                    mail.Credentials = new NetworkCredential("12", "123");
+                    mail.Timeout = 100000;
+                    var mailMsgs = _dt.AsEnumerable().Select(x =>
                     {
-                        var dr = (DataRow)((MailUserState)arg.UserState).UserState;
-                        var drf = dt.Rows.Find(dr["ID"]);
-                        if (arg.Error == null)
-                        {
-                            drf["Status"] = "1";
-                            drf["SendTime"] = DateTime.Now;
-                            toolStrip1.Invoke((MethodInvoker)delegate
-                            {
-                                label1.Text = $"ID:{dr["ID"]} 收件人：{dr["ToMailAddr"]} 主题：{dr["Subject"]} 的邮件已发送完成";
-                            });
-                        }
-                        else
-                        {
-                            label1.Text = $"ID:{dr["ID"]} 收件人：{dr["ToMailAddr"]} 主题：{dr["Subject"]} 的邮件发送失败!{Environment.NewLine}异常：" + arg.Error.InnerException == null ? arg.Error.Message : arg.Error.Message + arg.Error.InnerException.Message;
-                            // 标识异常已处理，否则若有异常，会抛出异常
-                            drf["Status"] = "0";
-                            drf["SendTime"] = DateTime.Now;
-                            drf["SendMsg"] = arg.Error.InnerException == null ? arg.Error.Message : arg.Error.Message + arg.Error.InnerException.Message;
-                            ((MailUserState)arg.UserState).IsErrorHandle = true;
-                        }
-                        SqlCommandBuilder sc = new SqlCommandBuilder(da);
-                        da.Update(dt.GetChanges());
-                        dt.AcceptChanges();
-                    };
-                }
-                string msg = "";
-                foreach (DataRow dr in dt.Rows)
-                {
-                    msg = $"正在发送ID:{dr["ID"]} 收件人：{dr["ToMailAddr"]} 主题：{dr["Subject"]} 的邮件中...";
-                    try
-                    {
-                        mail.SetMailInfo(dr["Subject"].ToString(), dr["BodyPart"].ToString(), dr["ToMailAddr"].ToString(), dr["CcMailAddr"].ToString(), dr["BccMailAddr"].ToString());
-                        mail.AsycUserState = dr;
-                        mail.SendMail();
-                        dr["Status"] = "1";
-                        dr["SendTime"] = DateTime.Now;
+                        var mailMsg = new MailMessage();
+                        mailMsg.From = new MailAddress(x.Field<string>("Sender") + "@renolit.com.cn", x.Field<string>("Sender"));
+                        mailMsg.To.Add(x.Field<string>("ToMailAddr").Replace(';', ','));
+                        //mailMsg.CC.Add(x.Field<string>("CcMailAddr").Replace(';', ','));
+                        //mailMsg.Bcc.Add(x.Field<string>("BccMailAddr").Replace(';', ','));
+                        mailMsg.Subject = x.Field<string>("Subject");
+                        mailMsg.Body = x.Field<string>("BodyPart");
+                        mailMsg.SubjectEncoding = Encoding.UTF8;
+                        mailMsg.BodyEncoding = Encoding.UTF8;
+                        mailMsg.HeadersEncoding = Encoding.UTF8;
+                        mailMsg.IsBodyHtml = true;
+                        return new { Id = x.Field<long>("ID"), Sender = x.Field<string>("Sender"), To = x.Field<string>("ToMailAddr"), Subject = x.Field<string>("Subject"), Msg = mailMsg };
+                    }).ToList();
 
-                    }
-                    catch (Exception e)
+                    foreach (var maiMsg in mailMsgs)
                     {
-                        msg += e.ToString();
-                        //异步需要在回调函数中处理
-                        if (!asnyc)
+                        var dr = _dt.Rows.Find(maiMsg.Id);
+                        dr["SendTime"] = DateTime.Now;
+                        try
+                        {
+                            await mail.SendMailAsync(maiMsg.Msg);
+                            dr["Status"] = "1";
+                            //Log($"ID:{x.id} 收件人：{x.to} 主题：{x.subject} 的邮件发送成功！");
+                            label1.Text = $"ID:{maiMsg.Id} 收件人：{maiMsg.To} 主题：{maiMsg.Subject} 的邮件发送成功！";
+                        }
+                        catch (Exception e)
                         {
                             dr["Status"] = "0";
-                            dr["SendTime"] = DateTime.Now;
-                            dr["SendMsg"] = e.ToString();
+                            dr["SendMsg"] = e.Message;
+                            //Log($"ID:{x.id} 收件人：{x.to} 主题：{x.subject} 的邮件发送失败！异常：" + e);
+                            label1.Text = $"ID:{maiMsg.Id} 收件人：{maiMsg.To} 主题：{maiMsg.Subject} 的邮件发送失败！异常：" + e.Message;
                         }
                     }
-                    finally
-                    {
-                        toolStrip1.Invoke((MethodInvoker)delegate
-                        {
-                            label1.Text = msg;
-                        });
-                    }
-                    //异步需要在回调函数中处理
-                    if (!asnyc)
-                    {
-                        toolStrip1.Invoke((MethodInvoker)delegate
-                    {
-                        pb1.ProgressBar.Value = (dt.Rows.IndexOf(dr) + 1) * 100 / dt.Rows.Count;
-                    });
-                    }
                 }
-                SqlCommandBuilder scb = new SqlCommandBuilder(da);
-                da.Update(dt.GetChanges());
-                dt.AcceptChanges();
-                toolStrip1.Invoke((MethodInvoker)delegate
-                {
-                    label1.Text = "邮件处理完成";
-                });
-                while (mail.ExistsSmtpClient())
-                {
-                    Thread.Sleep(500);
-                }
-                DisplayData();
 
+                SqlCommandBuilder scb = new SqlCommandBuilder(da);
+                da.Update(_dt.GetChanges());
+                _dt.AcceptChanges();
+                DisplayData();
             }
             //注册数据表监视
-
             SqlDependency dependency = new SqlDependency(da.SelectCommand);
             dependency.OnChange += dependency_OnChange;
-            da.Fill(dt);//注册以后一定要执行一次取数
+            da.Fill(_dt);//注册以后一定要执行一次取数
         }
 
-        void dependency_OnChange(object sender, SqlNotificationEventArgs e)
+        async void dependency_OnChange(object sender, SqlNotificationEventArgs e)
         {
             if (e.Info == SqlNotificationInfo.Insert ||
               e.Info == SqlNotificationInfo.Update ||
               e.Info == SqlNotificationInfo.Delete)
             {
-                SendMail();
+                await SendMail();
                 DisplayData();
             }
         }
@@ -177,13 +146,13 @@ namespace SendMailAuto
             SqlDependency.Stop(connStr);
         }
 
-        private void btn_start_Click(object sender, EventArgs e)
+        private async void btn_start_Click(object sender, EventArgs e)
         {
             if (btn_start.Text == "开始")
             {
                 SqlDependency.Stop(connStr);
                 SqlDependency.Start(connStr);
-                SendMail();
+                await SendMail();
                 btn_start.Text = "结束";
                 MessageBox.Show("开始监视数据库");
             }

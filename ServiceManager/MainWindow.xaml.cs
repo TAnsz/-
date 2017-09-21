@@ -10,12 +10,15 @@ namespace ServiceManager
     /// </summary>
     public partial class MainWindow : MetroWindow
     {
-        string strServiceName = string.Empty;
+        string ServiceName = string.Empty;
+        string FileName = string.Empty;
         public MainWindow()
         {
             InitializeComponent();
-            strServiceName = string.IsNullOrEmpty(txtServiceName.Text) ? "SendMailService" : txtServiceName.Text;
-            InitControlStatus(strServiceName, btnInstallOrUninstall, btnStartOrEnd, btnGetStatus, rb_Msg);
+            var configServiceName = Properties.Settings.Default.FileName;
+            ServiceName = Properties.Settings.Default.ServiceName;
+            ServiceName = string.IsNullOrEmpty(txtServiceName.Text) ? configServiceName : txtServiceName.Text;
+            InitControlStatus(ServiceName, btnInstallOrUninstall, btnStartOrEnd, btnGetStatus, rb_Msg);
             //txtServiceName.TextChanged += (o, e) =>
             //{
             //    strServiceName = txtServiceName.Text;
@@ -84,8 +87,7 @@ namespace ServiceManager
         {
             try
             {
-                string location = System.Reflection.Assembly.GetExecutingAssembly().Location;
-                string serviceFileName = location.Substring(0, location.LastIndexOf('\\')) + "\\" + serviceName + ".exe";
+                string serviceFileName = FileName.Substring(0, FileName.LastIndexOf('\\')) + "\\" + serviceName + ".exe";
 
                 if (btnSet.Content.Equals("安装服务"))
                 {
@@ -139,6 +141,7 @@ namespace ServiceManager
                     {
                         case 1:
                             statusStr = "服务未运行！";
+                            btnStartOrEnd.Content = "启动服务";
                             break;
                         case 2:
                             statusStr = "服务正在启动！";
@@ -222,7 +225,7 @@ namespace ServiceManager
         private void btnInstallOrUninstall_Click(object sender, RoutedEventArgs e)
         {
             btnInstallOrUninstall.IsEnabled = false;
-            SetServerce(strServiceName, btnInstallOrUninstall, btnStartOrEnd, btnGetStatus, rb_Msg);
+            SetServerce(ServiceName, btnInstallOrUninstall, btnStartOrEnd, btnGetStatus, rb_Msg);
             btnInstallOrUninstall.IsEnabled = true;
             btnInstallOrUninstall.Focus();
         }
@@ -231,7 +234,7 @@ namespace ServiceManager
         {
 
             btnStartOrEnd.IsEnabled = false;
-            OnService(strServiceName, btnStartOrEnd, rb_Msg);
+            OnService(ServiceName, btnStartOrEnd, rb_Msg);
             btnStartOrEnd.IsEnabled = true;
             btnStartOrEnd.Focus();
         }
@@ -239,7 +242,7 @@ namespace ServiceManager
         private void btnGetStatus_Click(object sender, RoutedEventArgs e)
         {
             btnGetStatus.IsEnabled = false;
-            GetServiceStatus(strServiceName, txtStaute);
+            GetServiceStatus(ServiceName, txtStaute);
             btnGetStatus.IsEnabled = true;
             btnGetStatus.Focus();
         }
@@ -253,9 +256,14 @@ namespace ServiceManager
             var result = openFileDialog.ShowDialog();
             if (result == true)
             {
-                strServiceName = openFileDialog.SafeFileName.Substring(0, openFileDialog.SafeFileName.LastIndexOf('.'));
-                txtServiceName.Text = strServiceName;
-                InitControlStatus(strServiceName, btnInstallOrUninstall, btnStartOrEnd, btnGetStatus, rb_Msg);
+                var file = openFileDialog.SafeFileName;
+                FileName = openFileDialog.FileName;
+                ServiceName = file.Substring(0, file.LastIndexOf('.'));
+                Properties.Settings.Default.FileName = FileName;
+                Properties.Settings.Default.ServiceName = ServiceName;
+                Properties.Settings.Default.Save();
+                txtServiceName.Text = ServiceName;
+                InitControlStatus(ServiceName, btnInstallOrUninstall, btnStartOrEnd, btnGetStatus, rb_Msg);
             }
         }
 

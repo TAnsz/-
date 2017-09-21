@@ -27,7 +27,7 @@
             </StackPanel>
         </StackPanel>
         <DockPanel Margin="10 0 0 0" DockPanel.Dock="Right">
-            <RichTextBox x:Name="rb_Msg" IsEnabled="False"/>
+            <RichTextBox x:Name="rb_Msg" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True" IsReadOnly="True"/>
         </DockPanel>
     </DockPanel>
 </controls:MetroWindow>

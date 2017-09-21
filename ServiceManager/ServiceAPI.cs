@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Configuration.Install;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -101,8 +102,9 @@ namespace ServiceManager
             }
             catch (Exception ex)
             {
-                bo = false;
-                LogAPI.WriteLog(ex.Message);
+                bo = true;
+                ProcessKill(NameService);
+                LogAPI.WriteLog(ex.Message + "\r\n进程已被杀掉！");
             }
 
             return bo;
@@ -179,6 +181,15 @@ namespace ServiceManager
             {
                 LogAPI.WriteLog(ex.Message);
                 return string.Empty;
+            }
+        }
+
+        public static void ProcessKill(string NameService)
+        {
+            Process[] processes = Process.GetProcessesByName(NameService);
+            foreach (Process process in processes)
+            {
+                process.Kill();
             }
         }
     }
